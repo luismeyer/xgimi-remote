@@ -42,5 +42,5 @@ exports.status = async () => {
 
   const res = await runCommand(command).catch(() => "");
 
-  return res.includes("power status: on") === "on";
+  return res.includes("power status: on");
 };

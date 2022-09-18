@@ -14,7 +14,7 @@ const version = () => {
   return JSON.parse(data).version;
 };
 
-app.get("/version", async (_, res) => {
+app.get("/version", (_, res) => {
   res.status(200).send(version());
 });
 
