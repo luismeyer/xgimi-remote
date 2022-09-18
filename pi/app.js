@@ -14,8 +14,8 @@ const version = () => {
   return JSON.parse(data).version;
 };
 
-app.get("/", async (_, res) => {
-  res.status(200).send(`Running ${version()}`);
+app.get("/version", async (_, res) => {
+  res.status(200).send(version());
 });
 
 app.get("/on", async (_, res) => {

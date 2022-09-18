@@ -42,6 +42,7 @@ exports.status = async () => {
 
   const res = await runCommand(command).catch(() => "");
   const [_, state] = res.split("power status: ");
+  console.log("status ", res)
 
   return state === "on";
 };
