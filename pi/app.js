@@ -1,9 +1,22 @@
 const express = require("express");
 const ngrok = require("ngrok");
+const fs = require("fs");
+const path = require("path");
 
 const { on, standby, status } = require("./cec.js");
 
 const app = express();
+
+const version = () => {
+  const pjson = path.resolve(__dirname, "../package.json");
+  const data = fs.readFileSync(pjson);
+
+  return JSON.parse(data).version;
+};
+
+app.get("/", async (_, res) => {
+  res.status(200).send(`Running ${version()}`);
+});
 
 app.get("/on", async (_, res) => {
   await on()
