@@ -1,0 +1,14 @@
+{
+  "name": "xgimi-remote",
+  "version": "1.0.0",
+  "main": "index.js",
+  "type": "module",
+  "license": "MIT",
+  "scripts": {
+    "start": "node pi/app.js"
+  },
+  "dependencies": {
+    "express": "^4.18.1",
+    "ngrok": "^4.3.3"
+  }
+}
