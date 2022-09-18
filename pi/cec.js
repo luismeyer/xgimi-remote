@@ -18,7 +18,7 @@ const runCommand = (cmd) => {
       }
 
       console.log(`stdout: ${stdout}`);
-      res();
+      res(stdout);
     });
   });
 };
@@ -41,8 +41,6 @@ exports.status = async () => {
   const command = `echo 'pow ${beamer}' | cec-client -s -d 1`;
 
   const res = await runCommand(command).catch(() => "");
-  const [_, state] = res.split("power status: ");
-  console.log("status ", res)
 
-  return state === "on";
+  return res.includes("power status: on") === "on";
 };
