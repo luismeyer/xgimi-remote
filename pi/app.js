@@ -1,7 +1,7 @@
-import express from "express";
-import ngrok from "ngrok";
+const express = require("express");
+const ngrok = require("ngrok");
 
-import { on, standby, status } from "./cec.js";
+const { on, standby, status } = require("./cec.js");
 
 const app = express();
 

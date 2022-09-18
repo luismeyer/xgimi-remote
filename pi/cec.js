@@ -1,4 +1,4 @@
-import { exec } from "child_process";
+const { exec } = require("child_process");
 
 const runCommand = (cmd) => {
   return new Promise((res, rej) => {
@@ -25,19 +25,19 @@ const runCommand = (cmd) => {
 
 const beamer = "0.0.0.0";
 
-export const on = async () => {
+exports.on = async () => {
   const command = `echo 'on ${beamer}' | cec-client -s -d 1`;
 
   await runCommand(command);
 };
 
-export const standby = async () => {
+exports.standby = async () => {
   const command = `echo 'standby ${beamer}' | cec-client -s -d 1`;
 
   await runCommand(command);
 };
 
-export const status = async () => {
+exports.status = async () => {
   const command = `echo 'pow ${beamer}' | cec-client -s -d 1`;
 
   const res = await runCommand(command).catch(() => "");
