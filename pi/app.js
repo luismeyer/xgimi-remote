@@ -15,7 +15,7 @@ const version = () => {
 };
 
 app.get("/version", (_, res) => {
-  res.status(200).send(version());
+  res.status(200).send({ version: version() });
 });
 
 app.get("/on", async (_, res) => {
