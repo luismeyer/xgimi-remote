@@ -20,20 +20,20 @@ app.get("/version", (_, res) => {
 
 app.get("/on", async (_, res) => {
   await on()
-    .then(() => res.status(200))
-    .catch(() => res.status(400));
+    .then(() => res.status(200).send({ state: true }))
+    .catch(() => res.status(400).send({ state: true }));
 });
 
 app.get("/standby", async (_, res) => {
   await standby()
-    .then(() => res.status(200))
-    .catch(() => res.status(400));
+    .then(() => res.status(200).send({ state: false }))
+    .catch(() => res.status(400).send({ state: false }));
 });
 
 app.get("/status", async (_, res) => {
   await status()
     .then((state) => res.status(200).json({ state }))
-    .catch(() => res.status(400));
+    .catch(() => res.status(400).json({ state: undefined }));
 });
 
 const port = 8080;

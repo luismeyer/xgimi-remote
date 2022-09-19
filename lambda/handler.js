@@ -7,27 +7,45 @@ const log = (message, message1, message2) => {
 };
 
 const fetchPi = (url) => {
-  console.log("Endpoint: " + url);
+  log("DEBUG: ", "Endpoint: ", url);
 
-  let body = "";
+  let body = [];
 
-  return new Promise((res, rej) => {
-    https.get(url, (response) => {
+  return new Promise((resolve, reject) => {
+    const request = https.get(url, (response) => {
       response.on("data", (chunk) => {
-        body += chunk;
+        log("DEBUG ", "Chunk ", chunk);
+
+        body.push(chunk);
       });
 
-      response.on("error", rej);
+      response.on("error", (error) => {
+        log("DEBUG ", "Error ", e);
+
+        reject(error);
+      });
 
       response.on("end", () => {
-        const data = JSON.parse(body);
-        res(data);
+        log("DEBUG: ", "End fetch ", body);
+
+        try {
+          body = JSON.parse(Buffer.concat(body).toString());
+          resolve(body);
+        } catch (e) {
+          reject(e);
+        }
       });
     });
+
+    request.on("error", (e) => {
+      reject(e.message);
+    });
+
+    request.end();
   });
 };
 
-const handleDiscovery = (request, context) => {
+const handleDiscovery = (request) => {
   const payload = {
     endpoints: [
       {
@@ -61,56 +79,60 @@ const handleDiscovery = (request, context) => {
     ],
   };
 
-  const header = request.directive.header;
-  header.name = "Discover.Response";
-
   log(
     "DEBUG:",
     "Discovery Response: ",
     JSON.stringify({ header: header, payload: payload })
   );
 
-  context.succeed({ event: { header: header, payload: payload } });
+  return {
+    event: {
+      header: {
+        ...request.directive.header,
+        name: "Discover.Response",
+      },
+      payload: payload,
+    },
+  };
 };
 
-const handleReportState = (request, context) => {
-  fetchPi(`${URL}/status`)
+const handleReportState = async (request) => {
+  const powerResult = await fetchPi(`${URL}/status`)
     .catch((e) => console.log("fetch status ", e))
-    .then(({ state }) => {
-      const powerResult = state ? "ON" : "OFF";
+    .then(({ state }) => (state ? "ON" : "OFF"));
 
-      console.log("received     : " + powerResult);
+  log("DEBUG: ", "received: ", powerResult);
 
-      const contextResult = {
-        properties: [
-          {
-            namespace: "Alexa.PowerController",
-            name: "powerState",
-            value: powerResult,
-            timeOfSample: new Date().toISOString(),
-            uncertaintyInMilliseconds: 50,
-          },
-        ],
-      };
+  const contextResult = {
+    properties: [
+      {
+        namespace: "Alexa.PowerController",
+        name: "powerState",
+        value: powerResult,
+        timeOfSample: new Date().toISOString(),
+        uncertaintyInMilliseconds: 50,
+      },
+    ],
+  };
 
-      const responseHeader = request.directive.header;
-      responseHeader.messageId = responseHeader.messageId + "-R";
-      responseHeader.name = "StateReport";
+  const responseHeader = request.directive.header;
+  responseHeader.messageId = responseHeader.messageId + "-R";
+  responseHeader.name = "StateReport";
 
-      const response = {
-        context: contextResult,
-        event: {
-          header: responseHeader,
-          payload: {},
-        },
-      };
+  const response = {
+    context: contextResult,
+    event: {
+      header: responseHeader,
+      payload: {},
+    },
+  };
 
-      log("DEBUG:", "ReportState ", JSON.stringify(response));
-      context.succeed(response);
-    });
+  log("DEBUG:", "ReportState ", JSON.stringify(response));
+
+  return response;
 };
 
-const handlePowerControl = (request, context) => {
+const handlePowerControl = async (request) => {
   // get device ID passed in during discovery
   const requestMethod = request.directive.header.name;
 
@@ -125,18 +147,20 @@ const handlePowerControl = (request, context) => {
   let result = "OFF";
 
   if (requestMethod === "TurnOn") {
-    fetchPi(`${URL}/on`)
-      .catch((e) => console.log("fetch on error", e))
-      .then(() => {
+    await fetchPi(`${URL}/on`)
+      .catch((e) => log("DEBUG: ", "fetch on error", e))
+      .then((r) => log("DEBUG: ", "fetch on", r))
+      .finally(() => {
         result = "ON";
       });
   }
 
   if (requestMethod === "TurnOff") {
-    fetchPi(`${URL}/on`)
+    await fetchPi(`${URL}/standby`)
       .catch((e) => console.log("fetch off error", e))
-      .then(() => {
-        result = "ON";
+      .then((r) => log("DEBUG: ", "fetch off", r))
+      .finally(() => {
+        result = "OFF";
       });
   }
 
@@ -168,18 +192,17 @@ const handlePowerControl = (request, context) => {
   };
 
   log("DEBUG:", "Alexa.PowerController: ", JSON.stringify(response));
-  context.succeed(response);
+
+  return response;
 };
 
-exports.handler = (request, context) => {
+exports.handler = async (request) => {
   if (
     request.directive.header.namespace === "Alexa.Discovery" &&
     request.directive.header.name === "Discover"
   ) {
     log("DEBUG:", "Discover request", JSON.stringify(request));
-    handleDiscovery(request, context, "");
-
-    return;
+    return handleDiscovery(request);
   }
 
   if (request.directive.header.namespace === "Alexa.PowerController") {
@@ -188,18 +211,14 @@ exports.handler = (request, context) => {
       request.directive.header.name === "TurnOff"
     ) {
       log("DEBUG:", "TurnOn or TurnOff Request", JSON.stringify(request));
-      handlePowerControl(request, context);
-
-      return;
+      return handlePowerControl(request);
     }
   }
 
   if (request.directive.header.namespace === "Alexa") {
     if (request.directive.header.name === "ReportState") {
-      log("DEBUG:", "ReportState Request", JSON.stringify(request));
-      handleReportState(request, context);
-
-      return;
+      log("DEBUG: ", "ReportState Request", JSON.stringify(request));
+      return handleReportState(request);
     }
   }
 };
