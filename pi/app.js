@@ -1,11 +1,20 @@
 const express = require("express");
-const ngrok = require("ngrok");
+const localtunnel = require("localtunnel");
 const fs = require("fs");
 const path = require("path");
+const dotenv = require("dotenv");
+
+dotenv.config();
 
 const { on, standby, status } = require("./cec.js");
 
 const app = express();
+
+const { PASSWORD, SUB_DOMAIN } = process.env;
+
+if (!PASSWORD || !SUB_DOMAIN) {
+  throw new Error("Missing env");
+}
 
 const version = () => {
   const pjson = path.resolve(__dirname, "../package.json");
@@ -13,6 +22,19 @@ const version = () => {
 
   return JSON.parse(data).version;
 };
+
+app.use((req, res, next) => {
+  const { authorization } = req.headers;
+
+  if (authorization !== PASSWORD) {
+    console.info("Unauthorized request with header: ", authorization);
+
+    res.status(401).send({ message: "Wrong pw" });
+    return;
+  }
+
+  next();
+});
 
 app.get("/version", (_, res) => {
   res.status(200).send({ version: version() });
@@ -39,9 +61,9 @@ app.get("/status", async (_, res) => {
 const port = 8080;
 
 app.listen(port, async () => {
-  console.log(`App running on http://localhost:${8080}/`);
+  console.log(`App running on http://localhost:${port}/`);
 
-  const tunnel = await ngrok.connect(port);
+  const tunnel = await localtunnel({ port: port, subdomain: SUB_DOMAIN });
 
-  console.log("Opened ngrok tunnel ", tunnel);
+  console.log(`Tunnel open: ${tunnel.url}`);
 });

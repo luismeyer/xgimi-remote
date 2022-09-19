@@ -1,6 +1,10 @@
 const https = require("https");
 
-const URL = process.env.PI_URL;
+const { PI_URL, PASSWORD } = process.env;
+
+if (!PASSWORD || !PI_URL) {
+  throw new Error("Missing env");
+}
 
 const log = (message, message1, message2) => {
   console.log(message + message1 + message2);
@@ -12,30 +16,34 @@ const fetchPi = (url) => {
   let body = [];
 
   return new Promise((resolve, reject) => {
-    const request = https.get(url, (response) => {
-      response.on("data", (chunk) => {
-        log("DEBUG ", "Chunk ", chunk);
+    const request = https.get(
+      url,
+      { headers: { Authorization: PASSWORD } },
+      (response) => {
+        response.on("data", (chunk) => {
+          log("DEBUG ", "Chunk ", chunk);
 
-        body.push(chunk);
-      });
+          body.push(chunk);
+        });
 
-      response.on("error", (error) => {
-        log("DEBUG ", "Error ", e);
+        response.on("error", (error) => {
+          log("DEBUG ", "Error ", e);
 
-        reject(error);
-      });
+          reject(error);
+        });
 
-      response.on("end", () => {
-        log("DEBUG: ", "End fetch ", body);
+        response.on("end", () => {
+          log("DEBUG: ", "End fetch ", body);
 
-        try {
-          body = JSON.parse(Buffer.concat(body).toString());
-          resolve(body);
-        } catch (e) {
-          reject(e);
-        }
-      });
-    });
+          try {
+            body = JSON.parse(Buffer.concat(body).toString());
+            resolve(body);
+          } catch (e) {
+            reject(e);
+          }
+        });
+      }
+    );
 
     request.on("error", (e) => {
       reject(e.message);
@@ -97,7 +105,7 @@ const handleDiscovery = (request) => {
 };
 
 const handleReportState = async (request) => {
-  const powerResult = await fetchPi(`${URL}/status`)
+  const powerResult = await fetchPi(`${PI_URL}/status`)
     .catch((e) => console.log("fetch status ", e))
     .then(({ state }) => (state ? "ON" : "OFF"));
 
@@ -147,7 +155,7 @@ const handlePowerControl = async (request) => {
   let result = "OFF";
 
   if (requestMethod === "TurnOn") {
-    await fetchPi(`${URL}/on`)
+    await fetchPi(`${PI_URL}/on`)
       .catch((e) => log("DEBUG: ", "fetch on error", e))
       .then((r) => log("DEBUG: ", "fetch on", r))
       .finally(() => {
@@ -156,7 +164,7 @@ const handlePowerControl = async (request) => {
   }
 
   if (requestMethod === "TurnOff") {
-    await fetchPi(`${URL}/standby`)
+    await fetchPi(`${PI_URL}/standby`)
       .catch((e) => console.log("fetch off error", e))
       .then((r) => log("DEBUG: ", "fetch off", r))
       .finally(() => {
