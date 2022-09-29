@@ -1,26 +1,13 @@
-const { exec } = require("child_process");
+const { execSync } = require("child_process");
 
 const runCommand = (cmd) => {
-  return new Promise((res, rej) => {
-    exec(cmd, (error, stdout, stderr) => {
-      if (error) {
-        console.log(`error: ${error.message}`);
+  try {
+    const result = execSync(cmd);
 
-        rej();
-        return;
-      }
-
-      if (stderr) {
-        console.log(`stderr: ${stderr}`);
-
-        rej();
-        return;
-      }
-
-      console.log(`stdout: ${stdout}`);
-      res(stdout);
-    });
-  });
+    return result.toString();
+  } catch {
+    return "";
+  }
 };
 
 const beamer = "0.0.0.0";
@@ -28,19 +15,19 @@ const beamer = "0.0.0.0";
 exports.on = async () => {
   const command = `echo 'on ${beamer}' | cec-client -s -d 1`;
 
-  await runCommand(command);
+  runCommand(command);
 };
 
 exports.standby = async () => {
   const command = `echo 'standby ${beamer}' | cec-client -s -d 1`;
 
-  await runCommand(command);
+  runCommand(command);
 };
 
 exports.status = async () => {
   const command = `echo 'pow ${beamer}' | cec-client -s -d 1`;
 
-  const res = await runCommand(command).catch(() => "");
+  const res = runCommand(command);
 
   return res.includes("power status: on");
 };
